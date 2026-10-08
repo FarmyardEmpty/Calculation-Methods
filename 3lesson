@@ -1,0 +1,117 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
+
+def system(x):
+    x1, x2, x3, x4 = x
+    return [
+        3*x1 + 1*x2 + 1*x3 + 7*x4 - 8,
+        1*x1 + 0*x2 + 6*x3 + 4*x4 - 4,
+        -5*x1 + 0*x2 - 1*x3 - 7*x4 + 5,
+        1*x1 - 6*x2 + 8*x3 + 6*x4 - 3
+    ]
+
+print("=" * 60)
+print("ЧАСТЬ 1. Решение через scipy.optimize.fsolve()")
+print("=" * 60)
+
+x_fsolve = None
+info = None
+
+x0 = [0, 0, 0, 0]
+sol, info, ier, msg = fsolve(system, x0, full_output=True)
+
+if ier == 1:
+    x_fsolve = sol
+    print(f"Решение: x1 = {x_fsolve[0]:.6f}, x2 = {x_fsolve[1]:.6f}, "
+          f"x3 = {x_fsolve[2]:.6f}, x4 = {x_fsolve[3]:.6f}")
+    print(f"Невязка: ||F(x)|| = {np.linalg.norm(system(x_fsolve)):.2e}")
+    print(f"Количество вызовов функции: {info['nfev']}")
+    print(f"Заданная точность: 0.0001")
+    print(f"Статус: {msg}")
+else:
+    print(f"fsolve не сошёлся: {msg}")
+print()
+
+print("=" * 60)
+print("ЧАСТЬ 2. Метод простой итерации")
+print("=" * 60)
+
+def simple_iteration(x0, eps=0.0001, max_iter=1000):
+    x = np.array(x0, dtype=float)
+    iter_count = 0
+    for _ in range(max_iter):
+        x1, x2, x3, x4 = x
+        x1_new = (8 - x2 - x3 - 7*x4) / 3
+        x2_new = (3 - x1 - 8*x3 - 6*x4) / (-6)
+        x3_new = (4 - x1 - 4*x4) / (-6)
+        x4_new = (-5 + 5*x1 + x3) / (-7)
+        x_new = np.array([x1_new, x2_new, x3_new, x4_new])
+        if np.linalg.norm(x_new - x, ord=np.inf) < eps:
+            x = x_new
+            iter_count += 1
+            break
+        x = x_new
+        iter_count += 1
+    return x, iter_count
+
+eps = 0.0001
+x_si, iter_si = simple_iteration([0, 0, 0, 0], eps)
+
+print(f"Решение: x1 = {x_si[0]:.6f}, x2 = {x_si[1]:.6f}, "
+      f"x3 = {x_si[2]:.6f}, x4 = {x_si[3]:.6f}")
+print(f"Невязка: ||F(x)|| = {np.linalg.norm(system(x_si)):.2e}")
+print(f"Количество итераций: {iter_si}")
+print(f"Заданная точность: {eps}")
+print()
+
+print("=" * 60)
+print("ЧАСТЬ 3. Сравнение методов")
+print("=" * 60)
+
+print(f"{'Метод':<25} {'x1':<10} {'x2':<10} {'x3':<10} {'x4':<10} {'Невязка':<12} {'Итераций':<10}")
+print("-" * 90)
+
+if x_fsolve is not None:
+    print(f"{'fsolve':<25} {x_fsolve[0]:<10.6f} {x_fsolve[1]:<10.6f} "
+          f"{x_fsolve[2]:<10.6f} {x_fsolve[3]:<10.6f} "
+          f"{np.linalg.norm(system(x_fsolve)):<12.2e} {info['nfev']:<10}")
+else:
+    print(f"{'fsolve':<25} {'—':<10} {'—':<10} {'—':<10} {'—':<10} {'—':<12} {'—':<10}")
+
+print(f"{'Простая итерация':<25} {x_si[0]:<10.6f} {x_si[1]:<10.6f} "
+      f"{x_si[2]:<10.6f} {x_si[3]:<10.6f} "
+      f"{np.linalg.norm(system(x_si)):<12.2e} {iter_si:<10}")
+print()
+
+def simple_iteration_history(x0, eps=0.0001, max_iter=1000):
+    x = np.array(x0, dtype=float)
+    history = [x.copy()]
+    for _ in range(max_iter):
+        x1, x2, x3, x4 = x
+        x1_new = (8 - x2 - x3 - 7*x4) / 3
+        x2_new = (3 - x1 - 8*x3 - 6*x4) / (-6)
+        x3_new = (4 - x1 - 4*x4) / (-6)
+        x4_new = (-5 + 5*x1 + x3) / (-7)
+        x_new = np.array([x1_new, x2_new, x3_new, x4_new])
+        history.append(x_new.copy())
+        if np.linalg.norm(x_new - x, ord=np.inf) < eps:
+            break
+        x = x_new
+    return np.array(history)
+
+history = simple_iteration_history([0, 0, 0, 0], eps)
+
+plt.figure(figsize=(10, 6))
+plt.plot(history[:, 0], label='x1', marker='o', markersize=3)
+plt.plot(history[:, 1], label='x2', marker='o', markersize=3)
+plt.plot(history[:, 2], label='x3', marker='o', markersize=3)
+plt.plot(history[:, 3], label='x4', marker='o', markersize=3)
+
+plt.title('Сходимость метода простой итерации')
+plt.xlabel('Итерация')
+plt.ylabel('Значение переменной')
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
