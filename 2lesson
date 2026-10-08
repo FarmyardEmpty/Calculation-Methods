@@ -1,0 +1,122 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
+
+def f(x):
+    return 8*x**3 - 7*x**2 + 6
+
+print("=" * 60)
+print("ЧАСТЬ 1. Решение через fsolve()")
+print("=" * 60)
+
+initial_guesses = [-2, 0, 2]
+roots_fsolve = []
+
+for x0 in initial_guesses:
+    x_root, info, ier, msg = fsolve(f, x0, full_output=True)
+    if ier == 1:
+        r = x_root[0]
+        if not any(np.isclose(r, rr, atol=1e-6) for rr, _ in roots_fsolve):
+            roots_fsolve.append((r, info['nfev']))
+
+print("Найденные корни через fsolve():")
+for i, (r, iters) in enumerate(roots_fsolve, 1):
+    print(f"  x{i} = {r:.6f}")
+    print(f"    f(x) = {f(r):.2e}")
+    print(f"    количество вызовов функции: {iters}")
+    print(f"    точность: 0.0001")
+    print()
+
+print("=" * 60)
+print("ЧАСТЬ 2. Метод Ньютона (классический)")
+print("=" * 60)
+
+def df(x):
+    return 24*x**2 - 14*x
+
+def newton(f, df, x0, eps=0.0001, max_iter=1000):
+    x = x0
+    iter_count = 0
+    for _ in range(max_iter):
+        fx = f(x)
+        if abs(fx) < eps:
+            break
+        dfx = df(x)
+        if dfx == 0:
+            raise ValueError("Производная равна нулю")
+        x_new = x - fx / dfx
+        if abs(x_new - x) < eps:
+            x = x_new
+            iter_count += 1
+            break
+        x = x_new
+        iter_count += 1
+    return x, iter_count
+
+eps = 0.0001
+roots_newton = []
+
+for x0 in initial_guesses:
+    try:
+        r, iters = newton(f, df, x0, eps)
+        if not any(np.isclose(r, rn, atol=1e-6) for rn, _ in roots_newton):
+            roots_newton.append((r, iters))
+    except ValueError:
+        pass
+
+print("Найденные корни методом Ньютона:")
+for i, (r, iters) in enumerate(roots_newton, 1):
+    print(f"  x{i} = {r:.6f}")
+    print(f"     f(x) = {f(r):.2e}")
+    print(f"     итераций: {iters}")
+    print(f"     точность: {eps}")
+    print()
+
+print("=" * 60)
+print("ЧАСТЬ 3. Сравнение методов")
+print("=" * 60)
+
+roots_fsolve_sorted = sorted(roots_fsolve, key=lambda p: p[0])
+roots_newton_sorted = sorted(roots_newton, key=lambda p: p[0])
+
+print(f"{'Корень':<10} {'fsolve':<15} {'f(x)':<15} {'Ньютон':<15} {'f(x)':<15} {'Итераций':<12}")
+print("-" * 85)
+
+for i in range(max(len(roots_fsolve_sorted), len(roots_newton_sorted))):
+    rf = roots_fsolve_sorted[i] if i < len(roots_fsolve_sorted) else (None, None)
+    rn = roots_newton_sorted[i] if i < len(roots_newton_sorted) else (None, None)
+
+    s1 = f"{rf[0]:.6f}" if rf[0] is not None else "—"
+    f1 = f"{f(rf[0]):.2e}" if rf[0] is not None else "—"
+    s2 = f"{rn[0]:.6f}" if rn[0] is not None else "—"
+    f2 = f"{f(rn[0]):.2e}" if rn[0] is not None else "—"
+    it1 = f"{rf[1]}" if rf[1] is not None else "—"
+    it2 = f"{rn[1]}" if rn[1] is not None else "—"
+
+    print(f"{i+1:<10} {s1:<15} {f1:<15} {s2:<15} {f2:<15} {it1}/{it2:<12}")
+
+print()
+
+x = np.linspace(-3, 3, 1000)
+y = f(x)
+
+plt.figure(figsize=(10, 6))
+plt.plot(x, y, label='f(x) = 8x³ − 7x² + 6', color='blue')
+plt.axhline(0, color='black', linewidth=0.8, linestyle='--')
+plt.axvline(0, color='black', linewidth=0.8, linestyle='--')
+
+for i, (r, _) in enumerate(roots_fsolve_sorted):
+    plt.plot(r, f(r), 'ko', markersize=10,
+             label=f'fsolve x{i+1}: {r:.4f}' if i == 0 else "")
+
+for i, (r, _) in enumerate(roots_newton_sorted):
+    plt.plot(r, f(r), 'go', markersize=8,
+             label=f'Ньютон x{i+1}: {r:.4f}' if i == 0 else "")
+
+plt.title('Графическое решение уравнения 8x³ − 7x² + 6 = 0')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
