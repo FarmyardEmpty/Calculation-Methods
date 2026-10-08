@@ -1,0 +1,88 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import root
+
+def system(x):
+    x1, x2, x3, x4 = x
+    return [
+        4*x1 + 7*x2 + 6*x3 + 1*x4 - 6,
+        1*x1 + 0*x2 + 2*x3 + 32*x4 - 16,
+        -5*x1 + 6*x2 - 1*x3 - 7*x4 + 5,
+        6*x1 - 6*x2 + 2*x3 + 6*x4 - 0
+    ]
+
+print("=" * 60)
+print("ЧАСТЬ 1. Решение через scipy.optimize.root()")
+print("=" * 60)
+
+x0 = [0, 0, 0, 0]
+sol = root(system, x0)
+x_root = sol.x
+
+print(f"Решение: x1 = {x_root[0]:.6f}, x2 = {x_root[1]:.6f}, "
+      f"x3 = {x_root[2]:.6f}, x4 = {x_root[3]:.6f}")
+print(f"Невязка: ||F(x)|| = {np.linalg.norm(system(x_root)):.2e}")
+print(f"Количество итераций (nfev): {sol.nfev}")
+print(f"Заданная точность: 0.0001")
+print(f"Статус: {sol.message}")
+print()
+
+print("=" * 60)
+print("ЧАСТЬ 2. Метод Зейделя")
+print("=" * 60)
+
+def seidel(x0, eps=0.0001, max_iter=1000):
+    x = np.array(x0, dtype=float)
+    iter_count = 0
+    history = [x.copy()]
+    for _ in range(max_iter):
+        x_old = x.copy()
+        # Порядок обновления: x1, x2, x3, x4
+        x[0] = (6 - 7*x[1] - 6*x[2] - x[3]) / 4
+        x[1] = (-5 + 5*x[0] + x[2] + 7*x[3]) / 6
+        x[2] = (16 - x[0] - 32*x[3]) / 2
+        x[3] = (0 - 6*x[0] + 6*x[1] - 2*x[2]) / 6
+        history.append(x.copy())
+        if np.linalg.norm(x - x_old, ord=np.inf) < eps:
+            iter_count += 1
+            break
+        iter_count += 1
+    return x, iter_count, np.array(history)
+
+eps = 0.0001
+x_se, iter_se, history = seidel([0, 0, 0, 0], eps)
+
+print(f"Решение: x1 = {x_se[0]:.6f}, x2 = {x_se[1]:.6f}, "
+      f"x3 = {x_se[2]:.6f}, x4 = {x_se[3]:.6f}")
+print(f"Невязка: ||F(x)|| = {np.linalg.norm(system(x_se)):.2e}")
+print(f"Количество итераций: {iter_se}")
+print(f"Заданная точность: {eps}")
+print()
+
+print("=" * 60)
+print("ЧАСТЬ 3. Сравнение методов")
+print("=" * 60)
+
+print(f"{'Метод':<25} {'x1':<12} {'x2':<12} {'x3':<12} {'x4':<12} {'Невязка':<12} {'Итераций':<10}")
+print("-" * 95)
+print(f"{'root':<25} {x_root[0]:<12.6f} {x_root[1]:<12.6f} "
+      f"{x_root[2]:<12.6f} {x_root[3]:<12.6f} "
+      f"{np.linalg.norm(system(x_root)):<12.2e} {sol.nfev:<10}")
+print(f"{'Зейдель':<25} {x_se[0]:<12.6f} {x_se[1]:<12.6f} "
+      f"{x_se[2]:<12.6f} {x_se[3]:<12.6f} "
+      f"{np.linalg.norm(system(x_se)):<12.2e} {iter_se:<10}")
+print()
+
+plt.figure(figsize=(10, 6))
+plt.plot(history[:, 0], label='x1', marker='o', markersize=4)
+plt.plot(history[:, 1], label='x2', marker='o', markersize=4)
+plt.plot(history[:, 2], label='x3', marker='o', markersize=4)
+plt.plot(history[:, 3], label='x4', marker='o', markersize=4)
+
+plt.title('Сходимость метода Зейделя')
+plt.xlabel('Итерация')
+plt.ylabel('Значение переменной')
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
