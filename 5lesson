@@ -40,43 +40,6 @@ for i, (r, iters) in enumerate(roots_found, 1):
     print(f"  Точность: 0.0001")
     print()
 
-print("=" * 60)
-print("ЧАСТЬ 2. Метод простой итерации")
-print("=" * 60)
-
-def simple_iteration(x0, y0, eps=0.0001, max_iter=10000):
-    x, y = x0, y0
-    iter_count = 0
-    history = [(x, y)]
-    for _ in range(max_iter):
-        x_new = 4 - 5*y / (x**2 + y**2 + 1) + y
-        y_new = y
-        if abs(x_new - x) < eps:
-            x = x_new
-            iter_count += 1
-            history.append((x, y))
-            break
-        x = x_new
-        iter_count += 1
-        history.append((x, y))
-
-    return x, y, iter_count, np.array(history)
-
-print("Попытки простой итерации:")
-for x0, y0 in [(1, 1), (0.5, 0.5), (2, -1)]:
-    try:
-        x_si, y_si, iter_si, history = simple_iteration(x0, y0, eps=0.0001, max_iter=5000)
-        res = system([x_si, y_si])
-        print(f"  x0 = ({x0}, {y0}): x = {x_si:.6f}, y = {y_si:.6f}, "
-              f"итераций = {iter_si}, невязка = {np.linalg.norm(res):.2e}")
-    except Exception as e:
-        print(f"  x0 = ({x0}, {y0}): ошибка — {e}")
-print()
-
-print("=" * 60)
-print("ЧАСТЬ 3. Графическое решение")
-print("=" * 60)
-
 x_vals = np.linspace(0.01, 5, 400)
 y_vals = np.linspace(-5, 5, 400)
 X, Y = np.meshgrid(x_vals, y_vals)
