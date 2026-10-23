@@ -2,17 +2,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import root
 
-A_orig = np.array([
+A = np.array([
     [4, 7, 6, 1],
     [1, 8, 2, 32],
     [-5, 6, -1, -7],
     [6, -6, 2, 6]
 ], dtype=float)
-b_orig = np.array([6, 16, -5, 0], dtype=float)
+b = np.array([6, 16, -5, 0], dtype=float)
 
 
 def system(x):
-    return A_orig.dot(x) - b_orig
+    return A.dot(x) - b
+
 
 eps = 0.0001
 x0 = [0, 0, 0, 0]
@@ -32,11 +33,13 @@ print(f"4. Заданная точность: {eps}")
 print()
 
 print("=" * 60)
-print("ЧАСТЬ 2. Метод Зейделя (с предобуславливанием A^T*A)")
+print("ЧАСТЬ 2. Метод Зейделя (с приведением матрицы)")
 print("=" * 60)
 
-A_trans = A_orig.T @ A_orig
-b_trans = A_orig.T @ b_orig
+A_trans = A.T @ A
+b_trans = A.T @ b
+A_seidel = A_trans + np.eye(4)
+b_seidel = b_trans + np.eye(4).dot(np.linalg.solve(A, b))
 
 
 def seidel(A, b, eps, max_iter=1000):
@@ -58,7 +61,7 @@ def seidel(A, b, eps, max_iter=1000):
     return x, max_iter, np.array(history)
 
 
-root_s, iters_s, hist = seidel(A_trans, b_trans, eps)
+root_s, iters_s, hist = seidel(A_seidel, b_seidel, eps)
 f_val_s = np.linalg.norm(system(root_s))
 
 print(f"1. Корень уравнения: x = [{root_s[0]:.4f}, {root_s[1]:.4f}, {root_s[2]:.4f}, {root_s[3]:.4f}]")
@@ -72,7 +75,7 @@ plt.plot(hist[:, 0], label='x1')
 plt.plot(hist[:, 1], label='x2')
 plt.plot(hist[:, 2], label='x3')
 plt.plot(hist[:, 3], label='x4')
-plt.title('Сходимость метода Зейделя')
+plt.title('Сходимость метода Зейделя (с приведением)')
 plt.xlabel('Итерация')
 plt.ylabel('Значение переменной')
 plt.grid(True)
