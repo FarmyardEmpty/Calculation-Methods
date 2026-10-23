@@ -2,87 +2,79 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import root
 
+A_orig = np.array([
+    [4, 7, 6, 1],
+    [1, 8, 2, 32],
+    [-5, 6, -1, -7],
+    [6, -6, 2, 6]
+], dtype=float)
+b_orig = np.array([6, 16, -5, 0], dtype=float)
+
+
 def system(x):
-    x1, x2, x3, x4 = x
-    return [
-        4*x1 + 7*x2 + 6*x3 + 1*x4 - 6,
-        1*x1 + 0*x2 + 2*x3 + 32*x4 - 16,
-        -5*x1 + 6*x2 - 1*x3 - 7*x4 + 5,
-        6*x1 - 6*x2 + 2*x3 + 6*x4 - 0
-    ]
+    return A_orig.dot(x) - b_orig
+
+eps = 0.0001
+x0 = [0, 0, 0, 0]
 
 print("=" * 60)
 print("ЧАСТЬ 1. Решение через scipy.optimize.root()")
 print("=" * 60)
+sol_root = root(system, x0)
+root_r = sol_root.x
+f_val_r = np.linalg.norm(system(root_r))
+iters_r = sol_root.nfev
 
-x0 = [0, 0, 0, 0]
-sol = root(system, x0)
-x_root = sol.x
-
-print(f"Решение: x1 = {x_root[0]:.6f}, x2 = {x_root[1]:.6f}, "
-      f"x3 = {x_root[2]:.6f}, x4 = {x_root[3]:.6f}")
-print(f"Невязка: ||F(x)|| = {np.linalg.norm(system(x_root)):.2e}")
-print(f"Количество итераций (nfev): {sol.nfev}")
-print(f"Заданная точность: 0.0001")
-print(f"Статус: {sol.message}")
+print(f"1. Корень уравнения: x = [{root_r[0]:.4f}, {root_r[1]:.4f}, {root_r[2]:.4f}, {root_r[3]:.4f}]")
+print(f"2. Значение функции в точке: f(x) = {f_val_r:.2e}")
+print(f"3. Количество итераций: {iters_r}")
+print(f"4. Заданная точность: {eps}")
 print()
 
 print("=" * 60)
-print("ЧАСТЬ 2. Метод Зейделя")
+print("ЧАСТЬ 2. Метод Зейделя (с предобуславливанием A^T*A)")
 print("=" * 60)
 
-def seidel(x0, eps=0.0001, max_iter=1000):
-    x = np.array(x0, dtype=float)
-    iter_count = 0
+A_trans = A_orig.T @ A_orig
+b_trans = A_orig.T @ b_orig
+
+
+def seidel(A, b, eps, max_iter=1000):
+    n = len(b)
+    x = np.zeros(n)
     history = [x.copy()]
-    for _ in range(max_iter):
+
+    for k in range(1, max_iter + 1):
         x_old = x.copy()
-        # Порядок обновления: x1, x2, x3, x4
-        x[0] = (6 - 7*x[1] - 6*x[2] - x[3]) / 4
-        x[1] = (-5 + 5*x[0] + x[2] + 7*x[3]) / 6
-        x[2] = (16 - x[0] - 32*x[3]) / 2
-        x[3] = (0 - 6*x[0] + 6*x[1] - 2*x[2]) / 6
+        for i in range(n):
+            s1 = sum(A[i][j] * x[j] for j in range(i))
+            s2 = sum(A[i][j] * x_old[j] for j in range(i + 1, n))
+            x[i] = (b[i] - s1 - s2) / A[i][i]
         history.append(x.copy())
+
         if np.linalg.norm(x - x_old, ord=np.inf) < eps:
-            iter_count += 1
-            break
-        iter_count += 1
-    return x, iter_count, np.array(history)
+            return x, k, np.array(history)
 
-eps = 0.0001
-x_se, iter_se, history = seidel([0, 0, 0, 0], eps)
+    return x, max_iter, np.array(history)
 
-print(f"Решение: x1 = {x_se[0]:.6f}, x2 = {x_se[1]:.6f}, "
-      f"x3 = {x_se[2]:.6f}, x4 = {x_se[3]:.6f}")
-print(f"Невязка: ||F(x)|| = {np.linalg.norm(system(x_se)):.2e}")
-print(f"Количество итераций: {iter_se}")
-print(f"Заданная точность: {eps}")
+
+root_s, iters_s, hist = seidel(A_trans, b_trans, eps)
+f_val_s = np.linalg.norm(system(root_s))
+
+print(f"1. Корень уравнения: x = [{root_s[0]:.4f}, {root_s[1]:.4f}, {root_s[2]:.4f}, {root_s[3]:.4f}]")
+print(f"2. Значение функции в точке: f(x) = {f_val_s:.2e}")
+print(f"3. Количество итераций: {iters_s}")
+print(f"4. Заданная точность: {eps}")
 print()
 
-print("=" * 60)
-print("ЧАСТЬ 3. Сравнение методов")
-print("=" * 60)
-
-print(f"{'Метод':<25} {'x1':<12} {'x2':<12} {'x3':<12} {'x4':<12} {'Невязка':<12} {'Итераций':<10}")
-print("-" * 95)
-print(f"{'root':<25} {x_root[0]:<12.6f} {x_root[1]:<12.6f} "
-      f"{x_root[2]:<12.6f} {x_root[3]:<12.6f} "
-      f"{np.linalg.norm(system(x_root)):<12.2e} {sol.nfev:<10}")
-print(f"{'Зейдель':<25} {x_se[0]:<12.6f} {x_se[1]:<12.6f} "
-      f"{x_se[2]:<12.6f} {x_se[3]:<12.6f} "
-      f"{np.linalg.norm(system(x_se)):<12.2e} {iter_se:<10}")
-print()
-
-plt.figure(figsize=(10, 6))
-plt.plot(history[:, 0], label='x1', marker='o', markersize=4)
-plt.plot(history[:, 1], label='x2', marker='o', markersize=4)
-plt.plot(history[:, 2], label='x3', marker='o', markersize=4)
-plt.plot(history[:, 3], label='x4', marker='o', markersize=4)
-
+plt.figure(figsize=(10, 5))
+plt.plot(hist[:, 0], label='x1')
+plt.plot(hist[:, 1], label='x2')
+plt.plot(hist[:, 2], label='x3')
+plt.plot(hist[:, 3], label='x4')
 plt.title('Сходимость метода Зейделя')
 plt.xlabel('Итерация')
 plt.ylabel('Значение переменной')
 plt.grid(True)
 plt.legend()
-plt.tight_layout()
 plt.show()
