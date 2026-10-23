@@ -1,20 +1,26 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import root
+from matplotlib.lines import Line2D
+
 
 def system(vars):
     x, y = vars
-    eq1 = np.sqrt(x) * np.cos(y) - 5*x*y - 3
-    eq2 = 5*y / (x**2 + y**2 + 1) + x - y - 4
+    if x < 0:
+        x = 0
+    eq1 = np.sqrt(x) * np.cos(y) - 5 * x * y - 3
+    eq2 = 5 * y / (x ** 2 + y ** 2 + 1) + x - y - 4
     return [eq1, eq2]
 
+
 print("=" * 60)
-print("ЧАСТЬ 1. Решение через scipy.optimize.root()")
+print("РЕШЕНИЕ СИСТЕМЫ НЕЛИНЕЙНЫХ УРАВНЕНИЙ")
 print("=" * 60)
 
 initial_guesses = [
     [1, 1], [0.5, 0.5], [2, -1], [1, -2],
-    [0.1, 0.1], [3, 2], [0.5, -1], [2, 3]
+    [0.1, 0.1], [3, 2], [0.5, -1], [2, 3],
+    [0.1, -5]
 ]
 
 roots_found = []
@@ -26,27 +32,23 @@ for x0 in initial_guesses:
             if x_root[0] >= 0:
                 if not any(np.allclose(x_root, r, atol=1e-4) for r, _ in roots_found):
                     roots_found.append((x_root, sol.nfev))
-    except Exception as e:
+    except Exception:
         pass
 
-print(f"Найдено решений: {len(roots_found)}")
-print()
+print(f"Найдено решений: {len(roots_found)}\n")
 for i, (r, iters) in enumerate(roots_found, 1):
     print(f"Решение {i}:")
     print(f"  x = {r[0]:.6f}")
     print(f"  y = {r[1]:.6f}")
     print(f"  Невязка: ||F(x,y)|| = {np.linalg.norm(system(r)):.2e}")
-    print(f"  Итераций (nfev): {iters}")
-    print(f"  Точность: 0.0001")
-    print()
+    print(f"  Итераций (nfev): {iters}\n")
 
-x_vals = np.linspace(0.01, 5, 400)
-y_vals = np.linspace(-5, 5, 400)
+x_vals = np.linspace(0.001, 5, 400)
+y_vals = np.linspace(-7, 5, 400)
 X, Y = np.meshgrid(x_vals, y_vals)
 
-F1 = np.sqrt(X) * np.cos(Y) - 5*X*Y - 3
-
-F2 = 5*Y / (X**2 + Y**2 + 1) + X - Y - 4
+F1 = np.sqrt(X) * np.cos(Y) - 5 * X * Y - 3
+F2 = 5 * Y / (X ** 2 + Y ** 2 + 1) + X - Y - 4
 
 plt.figure(figsize=(12, 8))
 
@@ -54,10 +56,18 @@ plt.contour(X, Y, F1, levels=[0], colors='blue', linewidths=2)
 plt.contour(X, Y, F2, levels=[0], colors='red', linewidths=2)
 
 for i, (r, _) in enumerate(roots_found, 1):
-    plt.plot(r[0], r[1], 'go', markersize=12, zorder=5)
-    plt.annotate(f'({r[0]:.3f}, {r[1]:.3f})',
+    plt.plot(r[0], r[1], 'go', markersize=10, zorder=5)
+
+    if r[1] < -3:
+        xytext = (r[0] + 1.0, r[1] + 0.5)
+        label = f'x≈{r[0]:.3f}, y≈{r[1]:.2f}'
+    else:
+        xytext = (r[0] + 0.2, r[1] + 0.3)
+        label = f'({r[0]:.3f}, {r[1]:.3f})'
+
+    plt.annotate(label,
                  xy=(r[0], r[1]),
-                 xytext=(r[0] + 0.2, r[1] + 0.3),
+                 xytext=xytext,
                  fontsize=10,
                  arrowprops=dict(arrowstyle='->', color='green'))
 
@@ -66,15 +76,14 @@ plt.ylabel('y', fontsize=12)
 plt.title('Графическое решение системы нелинейных уравнений', fontsize=14)
 plt.grid(True)
 plt.xlim(0, 5)
-plt.ylim(-5, 5)
+plt.ylim(-7, 5)
 
-from matplotlib.lines import Line2D
 legend_elements = [
     Line2D([0], [0], color='blue', lw=2, label='√x·cos(y) − 5xy − 3 = 0'),
     Line2D([0], [0], color='red', lw=2, label='5y/(x²+y²+1) + x − y − 4 = 0'),
     Line2D([0], [0], marker='o', color='w', markerfacecolor='green',
            markersize=10, label='Корни')
 ]
-plt.legend(handles=legend_elements, loc='best')
+plt.legend(handles=legend_elements, loc='upper right')
 plt.tight_layout()
 plt.show()
